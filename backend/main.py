@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()  # Load .env for local dev (no-op in production if .env absent)
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
