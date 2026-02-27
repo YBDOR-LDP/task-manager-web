@@ -24,6 +24,13 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/api/env-check")
+async def env_check() -> dict:
+    """Diagnostic: shows which required env vars are present (no values)."""
+    keys = ["ANTHROPIC_API_KEY", "GITHUB_TOKEN", "GITHUB_REPO", "APP_PASSWORD", "JWT_SECRET"]
+    return {k: ("SET" if os.environ.get(k) else "MISSING") for k in keys}
+
+
 # --- API routers ---
 app.include_router(auth_router.router)
 app.include_router(board_router.router)
