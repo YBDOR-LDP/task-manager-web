@@ -1,4 +1,5 @@
 import os
+import hmac
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
@@ -16,7 +17,8 @@ def _secret() -> str:
 
 def verify_password(password: str) -> bool:
     app_password = os.environ.get("APP_PASSWORD", "")
-    return password == app_password
+    # hmac.compare_digest prevents timing attacks
+    return hmac.compare_digest(password.encode(), app_password.encode())
 
 
 def create_access_token() -> str:

@@ -2,18 +2,28 @@ import os
 from dotenv import load_dotenv
 load_dotenv()  # Load .env for local dev (no-op in production if .env absent)
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from backend.routers import auth_router, board_router, tasks_router, commands_router
 
-app = FastAPI(title="Task Manager", docs_url=None, redoc_url=None)
+limiter = Limiter(key_func=get_remote_address)
 
+app = FastAPI(title="Task Manager", docs_url=None, redoc_url=None)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS: allow_credentials must NOT be used with wildcard origin.
+# Since frontend and backend share the same Render domain, CORS only
+# matters for local dev (frontend :5173 → backend :8000).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=["http://localhost:5173", "http://localhost:8000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -22,13 +32,6 @@ app.add_middleware(
 @app.get("/api/health")
 async def health() -> dict:
     return {"status": "ok"}
-
-
-@app.get("/api/env-check")
-async def env_check() -> dict:
-    """Diagnostic: shows which required env vars are present (no values)."""
-    keys = ["ANTHROPIC_API_KEY", "GITHUB_TOKEN", "GITHUB_REPO", "APP_PASSWORD", "JWT_SECRET"]
-    return {k: ("SET" if os.environ.get(k) else "MISSING") for k in keys}
 
 
 # --- API routers ---
